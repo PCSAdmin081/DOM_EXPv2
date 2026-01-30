@@ -13,20 +13,35 @@ def _normalize_db_url(url: str) -> str:
     return url
 
 
-DATABASE_URL = _normalize_db_url(str(settings.database_url))
+_ENGINE = None
+_SessionLocal = None
 
-# V2 invariant: Postgres only (fail fast)
-if not DATABASE_URL.startswith("postgresql://"):
-    raise RuntimeError(
-        f"V2 requires DATABASE_URL to be postgresql:// (no SQLite fallback). "
-        f"Got: {DATABASE_URL[:20]}... (truncated for security)"
-    )
 
-engine = create_engine(DATABASE_URL, pool_pre_ping=True)
-SessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False)
+def get_engine():
+    global _ENGINE, _SessionLocal
+    if _ENGINE is None:
+        DATABASE_URL = _normalize_db_url(str(settings.database_url))
+        
+        # V2 invariant: Postgres only (fail fast)
+        if not DATABASE_URL.startswith("postgresql://"):
+            raise RuntimeError(
+                f"V2 requires DATABASE_URL to be postgresql:// (no SQLite fallback). "
+                f"Got: {DATABASE_URL[:20]}... (truncated for security)"
+            )
+        
+        _ENGINE = create_engine(DATABASE_URL, pool_pre_ping=True)
+        _SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=_ENGINE)
+    return _ENGINE
+
+
+def get_sessionmaker():
+    if _SessionLocal is None:
+        get_engine()
+    return _SessionLocal
 
 
 def get_db():
+    SessionLocal = get_sessionmaker()
     db = SessionLocal()
     try:
         yield db
