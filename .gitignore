@@ -22,10 +22,15 @@ node_modules/
 *.sqlite
 *.sqlite3
 artifacts/
-config/env.local
-env.local
-.env
-.env.*
+
+# Environment files
+config/env.local*
+config/.local
+*.env
+.env*
+RECOVERED
+recovered
+cookies
 recovered env files
 cookies.txt
 
